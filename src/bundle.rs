@@ -41,7 +41,7 @@ pub fn build_bundle(appdir: impl AsRef<Path>, outdir: impl AsRef<Path>) {
     let tar_gz = File::create(outdir.as_ref().join("app.tgz")).unwrap();
     let enc = GzEncoder::new(tar_gz, Compression::default());
     let mut tar = tar::Builder::new(enc);
-    for result in build_walker(appdir) {
+    for result in build_walker(appdir.as_ref()) {
         // Each item yielded by the iterator is either a directory entry or an
         // error, so either print the path or the error.
         match result {
@@ -52,7 +52,11 @@ pub fn build_bundle(appdir: impl AsRef<Path>, outdir: impl AsRef<Path>) {
                         "Adding {} to bundle...",
                         entry.path().display().to_string().green().bold()
                     );
-                    tar.append_path(entry.path()).unwrap();
+                    tar.append_path_with_name(
+                        entry.path(),
+                        entry.path().strip_prefix(appdir.as_ref()).unwrap(),
+                    )
+                    .unwrap();
                 }
             }
             Err(err) => eprintln!("{}: {}", "ERROR".red().bold(), err),
