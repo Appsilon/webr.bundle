@@ -18,7 +18,13 @@ check_cargo <- function() {
   os <- get_os()
   if (os %in% c("osx", "linux")) {
     # Check if Cargo is installed
-    return(system("cargo --version", intern = TRUE) == 0)
+    result <- system2(
+      command = "cargo",
+      args = c("--version"),
+      stdout = NULL,
+      stderr = NULL,
+    )
+    return(result == 0)
   } else {
     stop("Unsupported OS")
   }
