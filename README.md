@@ -9,7 +9,7 @@ A tool for bundling Shiny Apps with WebAssembly.
 Install the package from GitHub:
 
 ```R
-# install.packages("remotes")
+# install.packages("pak")
 pak::pak("andyquinterom/webr.bundle")
 ```
 
