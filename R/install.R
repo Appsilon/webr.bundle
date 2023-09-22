@@ -38,14 +38,8 @@ cargo_install <- function(path) {
   system2("cargo", args = c("install", "--path", path))
 }
 
-download_webr_bundle_source <- function() {
-  tempdir <- tempfile()
-  # Clone webr-bundle
-  git2r::clone(
-    url = "https://github.com/andyquinterom/webr-bundle.git",
-    local_path = tempdir
-  )
-  return(tempdir)
+get_cli_source_path <- function() {
+  system.file("bin/cli", package = "webr.bundle")
 }
 
 #' Install webr-bundle from source
@@ -58,8 +52,6 @@ download_webr_bundle_source <- function() {
 install_from_source <- function() {
   # Install Rust
   install_rust()
-  # Download webr-bundle source
-  tempdir <- download_webr_bundle_source()
   # Install webr-bundle
-  cargo_install(tempdir)
+  cargo_install(get_cli_source_path())
 }
