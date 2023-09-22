@@ -6,20 +6,17 @@ A tool for bundling Shiny Apps with WebAssembly.
 
 ### Build from source
 
-First, clone this repository:
-
-```bash
-git clone https://github.com/andyquinterom/webr-bundle.git
-```
-
-Then, install [Rust](https://www.rust-lang.org/tools/install) by running the following command in your terminal:
-
-```bash
-
-Install [Rust](https://www.rust-lang.org/tools/install) by running the following command in your terminal:
+First, install [Rust](https://www.rust-lang.org/tools/install) by running the following command in your terminal:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Then, clone this repository and `cd` into it:
+
+```bash
+git clone https://github.com/andyquinterom/webr-bundle.git
+cd webr-bundle
 ```
 
 Finally, build the project:
