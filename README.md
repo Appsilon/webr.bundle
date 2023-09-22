@@ -52,9 +52,9 @@ webr.bundle::serve()
 ```
 
 ```R
-# Run the bundled app in the my-bundled-app directory
+# Run the shiny app (using WebR) in the my-shiny-app directory
 # on port 3000
-webr.bundle::serve("my-bundled-app", port = 3000)
+webr.bundle::serve("my-shiny-app", port = 3000)
 ```
 
 ## CLI
