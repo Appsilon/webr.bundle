@@ -51,7 +51,7 @@ This will create a new `dist` directory with the bundled app. If you want to spe
 # │   ├── app.R
 # │   └── renv.lock
 # └── ./my-bundled-app (Output directory)
-webr-bundle build -o my-bundled-app -a my-shiny-app
+webr-bundle -o my-bundled-app -a my-shiny-app build
 ```
 
 ### Run a bundled Shiny App
