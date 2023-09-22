@@ -1,4 +1,4 @@
-use std::{fs::File, path::Path};
+use std::path::Path;
 
 const INDEX_HTML_FILE: &str = include_str!("index.html");
 

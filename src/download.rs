@@ -1,7 +1,6 @@
 use colored::Colorize;
-use flate2::read::GzDecoder;
+
 use reqwest::{StatusCode, Url};
-use std::io::Read;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -11,7 +10,7 @@ use tokio::time::Instant;
 use tokio::{fs::File, io::AsyncWriteExt, sync::Mutex};
 
 use crate::renv::{Package, RenvLock};
-use crate::repo::{available_packages, VesionMatcher};
+use crate::repo::VesionMatcher;
 
 const R_VERSION: &str = "4.3";
 const REPO: &str = "https://repo.r-wasm.org";

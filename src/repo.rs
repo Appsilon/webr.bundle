@@ -1,9 +1,8 @@
 use crate::renv::{Package, RenvLock};
 use colored::Colorize;
 use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, BTreeSet},
     io::Read,
-    sync::Arc,
 };
 
 use flate2::bufread::GzDecoder;
