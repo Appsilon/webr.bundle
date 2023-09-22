@@ -1,8 +1,28 @@
-use webR_bundler::renv::RenvLock;
+use webr_bundle::{
+    bundle::create_dist_dir, cli::Args, cli::Command, download::download_packages_rds,
+    html::write_index_html_file, js::write_javascript, logs, renv::RenvLock,
+};
 
 #[tokio::main]
 async fn main() {
-    let renv_lock = std::fs::File::open("renv.lock").unwrap();
-    let renv_lock = serde_json::from_reader::<_, RenvLock>(renv_lock).unwrap();
-    renv_lock.download().await;
+    logs::init();
+    let args = Args::init();
+    let appdir = args.appdir();
+    let outdir = args.outdir();
+    create_dist_dir(outdir);
+    webr_bundle::bundle::build_bundle(appdir, outdir);
+    let mut renv_lock = RenvLock::read_from_file(appdir);
+    renv_lock.download(outdir, args.parallel()).await;
+    download_packages_rds(outdir).await;
+    write_javascript(outdir, &renv_lock);
+    write_index_html_file(outdir);
+    match args.command() {
+        Command::Build => eprintln!("Bundled and ready to ship!"),
+        Command::Serve(serve_args) => {
+            eprintln!("Serving on http://localhost:{}", serve_args.port());
+            webr_bundle::serve::server(outdir.to_path_buf(), serve_args.port())
+                .await
+                .unwrap()
+        }
+    }
 }

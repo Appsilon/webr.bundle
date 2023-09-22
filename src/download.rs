@@ -1,11 +1,17 @@
+use colored::Colorize;
+use flate2::read::GzDecoder;
 use reqwest::{StatusCode, Url};
+use std::io::Read;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tokio::sync::Semaphore;
+use tokio::time::Instant;
 use tokio::{fs::File, io::AsyncWriteExt, sync::Mutex};
 
 use crate::renv::{Package, RenvLock};
+use crate::repo::{available_packages, VesionMatcher};
 
 const R_VERSION: &str = "4.3";
 const REPO: &str = "https://repo.r-wasm.org";
@@ -42,8 +48,14 @@ fn get_package_url(package: &Package) -> String {
     package_download
 }
 
-async fn create_download_dir() -> std::path::PathBuf {
-    let dir_path = Path::new("./dist/bin/emscripten/contrib/").join(R_VERSION);
+async fn create_download_dir(outdir: impl AsRef<Path>) -> std::path::PathBuf {
+    let dir_path = outdir
+        .as_ref()
+        .join("repo")
+        .join("bin")
+        .join("emscripten")
+        .join("contrib")
+        .join(R_VERSION);
     tokio::fs::create_dir_all(&dir_path).await.unwrap();
     dir_path
 }
@@ -55,8 +67,8 @@ async fn create_package_tar_file(download_path: &Path, package: &str, version: &
 }
 
 impl PackageDownloader {
-    async fn new(package: &Package, client: reqwest::Client) -> Self {
-        let local_path = create_download_dir().await;
+    async fn new(package: &Package, outdir: impl AsRef<Path>, client: reqwest::Client) -> Self {
+        let local_path = create_download_dir(outdir.as_ref()).await;
         let package_url = get_package_url(package);
         Self {
             package: package.clone(),
@@ -92,21 +104,36 @@ impl PackageDownloader {
 }
 
 impl Package {
-    async fn download(&self, client: reqwest::Client) -> Status {
-        let downloader = PackageDownloader::new(self, client).await;
-        downloader.download_package().await
+    async fn download(&self, outdir: impl AsRef<Path>, client: reqwest::Client) -> Status {
+        let instant = std::time::Instant::now();
+        let downloader = PackageDownloader::new(self, outdir, client).await;
+        let status = downloader.download_package().await;
+        eprintln!(
+            "Downloaded {} in {}",
+            self.to_string().green(),
+            format!("{:.0?}", instant.elapsed()).cyan().italic()
+        );
+        status
     }
 }
 
 impl RenvLock {
-    pub async fn download(&self) {
+    pub async fn download(&mut self, outdir: impl AsRef<Path>, parallel_downloads: usize) {
+        let outdir: Arc<Path> = Arc::from(outdir.as_ref());
         let client = reqwest::Client::new();
+        let version_matcher = VesionMatcher::new(client.clone()).await;
+        version_matcher.sync_renv(self);
         let mut download_tasks = Vec::with_capacity(self.packages().len());
+        let semaphore = Arc::new(Semaphore::new(parallel_downloads));
+        let start_time = Instant::now();
         for package in self.packages() {
             let client = client.clone();
             let package = package.clone();
+            let semaphore = Arc::clone(&semaphore);
+            let outdir = Arc::clone(&outdir);
             download_tasks.push(tokio::spawn(async move {
-                (package.download(client).await, package)
+                let _permit = semaphore.acquire().await.unwrap();
+                (package.download(outdir, client).await, package)
             }));
         }
         let results = futures::future::join_all(download_tasks)
@@ -123,22 +150,45 @@ impl RenvLock {
             }
         }
         eprintln!(
-            "Downloaded {} packages successfully: {}",
-            succeeded_packages.len(),
-            succeeded_packages
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
+            "Downloaded {} packages successfully in {}",
+            succeeded_packages.len().to_string().green(),
+            format!("{:.0?}", start_time.elapsed()).cyan().italic()
         );
-        eprintln!(
-            "Failed to download {} packages: {}",
-            failed_packages.len(),
-            failed_packages
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        if !failed_packages.is_empty() {
+            eprintln!(
+                "Failed to download {} packages: {}",
+                failed_packages.len(),
+                failed_packages
+                    .iter()
+                    .map(|p| p.to_string().red().bold().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
     }
+}
+
+fn get_packages_rds_url() -> String {
+    format!("{}/bin/emscripten/contrib/{}/PACKAGES.rds", REPO, R_VERSION)
+}
+
+pub async fn download_packages_rds(outdir: impl AsRef<Path>) {
+    let client = reqwest::Client::new();
+    let res = client
+        .get(get_packages_rds_url())
+        .send()
+        .await
+        .unwrap()
+        .bytes()
+        .await
+        .unwrap();
+    let outfile = outdir
+        .as_ref()
+        .join("repo")
+        .join("bin")
+        .join("emscripten")
+        .join("contrib")
+        .join(R_VERSION)
+        .join("PACKAGES.rds");
+    std::fs::write(outfile, res).unwrap();
 }
