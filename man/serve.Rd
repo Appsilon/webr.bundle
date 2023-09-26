@@ -2,24 +2,15 @@
 % Please edit documentation in R/serve.R
 \name{serve}
 \alias{serve}
-\title{Bundle and Serve a Shiny App with WebR Bundle}
+\title{Serve a Shiny App with WebR Bundle}
 \usage{
-serve(
-  appdir = getwd(),
-  outdir = file.path(getwd(), "dist"),
-  parallel = 4,
-  port = 8080
-)
+serve(outdir = file.path(getwd(), "dist"), port = 8080)
 }
 \arguments{
-\item{appdir}{The directory of the Shiny App}
-
-\item{outdir}{The directory to output the bundled app (default: dist)}
-
-\item{parallel}{The number of packages to bundle in parallel (default: 4)}
+\item{outdir}{The directory where the bundle is located (default: dist)}
 
 \item{port}{The port to serve the app on (default: 8080)}
 }
 \description{
-Bundle and Serve a Shiny App with WebR Bundle
+Serve a Shiny App with WebR Bundle
 }

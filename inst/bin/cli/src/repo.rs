@@ -1,3 +1,4 @@
+use crate::errors::{BundlerResult, Error};
 use crate::renv::{Package, RenvLock};
 use colored::Colorize;
 use std::{
@@ -14,20 +15,20 @@ fn get_packages_available_url() -> String {
     format!("{}/bin/emscripten/contrib/{}/PACKAGES.gz", REPO, R_VERSION)
 }
 
-pub async fn available_packages(client: reqwest::Client) -> BTreeMap<String, Package> {
+pub async fn available_packages(
+    client: reqwest::Client,
+) -> BundlerResult<BTreeMap<String, Package>> {
     eprintln!("Downloading available packages...");
     let res = client
         .get(get_packages_available_url())
         .send()
-        .await
-        .unwrap()
+        .await?
         .bytes()
-        .await
-        .unwrap();
+        .await?;
     let mut decoder = GzDecoder::new(res.as_ref());
     let mut buffer = String::new();
-    decoder.read_to_string(&mut buffer).unwrap();
-    parse_available_packages(&buffer)
+    decoder.read_to_string(&mut buffer)?;
+    Ok(parse_available_packages(&buffer)?)
 }
 
 fn parse_depends(raw: &str) -> BTreeSet<String> {
@@ -40,12 +41,22 @@ fn parse_depends(raw: &str) -> BTreeSet<String> {
         .collect()
 }
 
-fn parse_available_packages(raw: &str) -> BTreeMap<String, Package> {
+fn parse_available_packages(raw: &str) -> BundlerResult<BTreeMap<String, Package>> {
     let mut packages = BTreeMap::new();
     for block in raw.split("\n\n") {
         let mut lines = block.lines();
-        let package = lines.next().unwrap().split_whitespace().last().unwrap();
-        let version = lines.next().unwrap().split_whitespace().last().unwrap();
+        let package = lines
+            .next()
+            .ok_or(Error::PackageParseError("Package not found"))?
+            .split_whitespace()
+            .last()
+            .ok_or(Error::PackageParseError("Package name not found"))?;
+        let version = lines
+            .next()
+            .ok_or(Error::PackageParseError("Package not found"))?
+            .split_whitespace()
+            .last()
+            .ok_or(Error::PackageParseError("Package version not found"))?;
         let mut package = Package::new(package, version, "");
         // Get the dependencies
         for line in lines {
@@ -60,7 +71,7 @@ fn parse_available_packages(raw: &str) -> BTreeMap<String, Package> {
         }
         packages.insert(package.get_package().0.to_string(), package);
     }
-    packages
+    Ok(packages)
 }
 
 pub struct VesionMatcher {
@@ -68,9 +79,9 @@ pub struct VesionMatcher {
 }
 
 impl VesionMatcher {
-    pub async fn new(client: reqwest::Client) -> Self {
-        let available_packages = available_packages(client).await;
-        Self { available_packages }
+    pub async fn new(client: reqwest::Client) -> BundlerResult<Self> {
+        let available_packages = available_packages(client).await?;
+        Ok(Self { available_packages })
     }
     // Update Renv
     pub fn sync_renv(&self, renv_lock: &mut RenvLock) {

@@ -1,3 +1,4 @@
+use crate::errors::BundlerResult;
 use std::path::Path;
 
 use crate::renv::{Package, RenvLock};
@@ -20,27 +21,31 @@ fn build_full_install_command(packages: &[Package]) -> String {
     .join("\n")
 }
 
-fn write_shiny_js_file(outdir: impl AsRef<Path>) {
+fn write_shiny_js_file(outdir: impl AsRef<Path>) -> BundlerResult<()> {
     let outfile = outdir.as_ref().join("shiny.js");
-    std::fs::write(outfile, SHINY_JS_FILE).unwrap();
+    std::fs::write(outfile, SHINY_JS_FILE)?;
+    Ok(())
 }
 
-fn write_httpuv_serviceworker_js_file(outdir: impl AsRef<Path>) {
+fn write_httpuv_serviceworker_js_file(outdir: impl AsRef<Path>) -> BundlerResult<()> {
     let outfile = outdir.as_ref().join("httpuv-serviceworker.js");
-    std::fs::write(outfile, HTTPUV_SERVICEWORKER_JS_FILE).unwrap();
+    std::fs::write(outfile, HTTPUV_SERVICEWORKER_JS_FILE)?;
+    Ok(())
 }
 
-fn write_install_packages(outdir: impl AsRef<Path>, renv_lock: &RenvLock) {
+fn write_install_packages(outdir: impl AsRef<Path>, renv_lock: &RenvLock) -> BundlerResult<()> {
     let packages = renv_lock.packages().cloned().collect::<Vec<Package>>();
     let command = build_full_install_command(&packages);
     let outfile = outdir.as_ref().join("install_packages.js");
-    std::fs::write(outfile, command).unwrap();
+    std::fs::write(outfile, command)?;
+    Ok(())
 }
 
-pub fn write_javascript(outdir: impl AsRef<Path>, renv_lock: &RenvLock) {
-    write_shiny_js_file(outdir.as_ref());
-    write_httpuv_serviceworker_js_file(outdir.as_ref());
-    write_install_packages(outdir.as_ref(), renv_lock);
+pub fn write_javascript(outdir: impl AsRef<Path>, renv_lock: &RenvLock) -> BundlerResult<()> {
+    write_shiny_js_file(outdir.as_ref())?;
+    write_httpuv_serviceworker_js_file(outdir.as_ref())?;
+    write_install_packages(outdir.as_ref(), renv_lock)?;
+    Ok(())
 }
 
 #[cfg(test)]

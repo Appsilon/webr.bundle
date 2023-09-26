@@ -1,6 +1,8 @@
+use crate::errors::BundlerResult;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs::File,
     sync::Arc,
 };
 
@@ -51,9 +53,9 @@ pub struct RenvLock {
 }
 
 impl RenvLock {
-    pub fn read_from_file(appdir: impl AsRef<std::path::Path>) -> Self {
-        let renv_lock = std::fs::File::open(appdir.as_ref().join("renv.lock")).unwrap();
-        serde_json::from_reader::<_, RenvLock>(renv_lock).unwrap()
+    pub fn read_from_file(appdir: impl AsRef<std::path::Path>) -> BundlerResult<Self> {
+        let renv_lock = File::open(appdir.as_ref().join("renv.lock"))?;
+        Ok(serde_json::from_reader(renv_lock)?)
     }
     pub fn packages(&self) -> std::collections::btree_map::Values<String, Package> {
         self.packages.values()

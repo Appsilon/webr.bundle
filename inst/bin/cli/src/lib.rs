@@ -1,6 +1,7 @@
 pub mod bundle;
 pub mod cli;
 pub mod download;
+pub mod errors;
 pub mod html;
 pub mod js;
 pub mod logs;
